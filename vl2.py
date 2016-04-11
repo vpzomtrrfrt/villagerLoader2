@@ -1,4 +1,4 @@
-import zipfile, json, sys, os, hashlib
+import zipfile, json, sys, os, hashlib, traceback
 if sys.version_info < (3,0):
 	# python 2
 	from cStringIO import StringIO as BytesIO
@@ -62,7 +62,8 @@ def _hash(s):
 	if type(s) == str:
 		s = s.encode('utf-8')
 	hsh.update(s)
-	return hsh.hexdigest()
+	tr = hsh.hexdigest()
+	print(tr)
 def _mkparents(path):
 	directory = "/".join(path.split("/")[:-1])
 	try:
@@ -70,6 +71,10 @@ def _mkparents(path):
 	except FileExistsError:
 		# it exists already
 		pass
+def _autofillData(data):
+	if not "id" in data:
+		data["id"] = data["name"]
+	data["id"] = str(data["id"])
 def load(to):
 	if type(to) == str:
 		to = OpenableFile(to)
@@ -125,28 +130,66 @@ def load(to):
 			print(h.read())
 	return tr
 def downloadFile(data):
-	if "name" in data:
-		h = data["file"].open()
-	else:
-		h, data["name"] = data["file"].open("")
-	if data["name"] == "":
-		print("Can't find filename")
-	else:
-		if not "id" in data:
-			data["id"] = data["name"]
-		_mkparents(data["name"])
-		out = open(data["name"], 'wb')
-		out.write(h.read())
-		out.close()
-		ts = {
-			"file": data["name"],
-			"hash": _hash(data["file"].getStateData())
-		}
-		try:
-			j = json.load(open(_luf, 'r'))
-		except FileNotFoundError:
-			j = {}
-		j[data["id"]] = ts
-		_mkparents(_luf)
-		json.dump(j, open(_luf, "w"))
-		return data["name"]
+	try:
+		if "name" in data:
+			h = data["file"].open()
+		else:
+			h, data["name"] = data["file"].open("")
+		if data["name"] == "":
+			print("Can't find filename")
+		else:
+			_autofillData(data)
+			_mkparents(data["name"])
+			out = open(data["name"], 'wb')
+			out.write(h.read())
+			out.close()
+			ts = {
+				"file": data["name"],
+				"hash": _hash(data["file"].getStateData())
+			}
+			try:
+				j = json.load(open(_luf, 'r'))
+			except FileNotFoundError:
+				j = {}
+			j[data["id"]] = ts
+			_mkparents(_luf)
+			json.dump(j, open(_luf, "w"))
+			return data["name"]
+	except KeyboardInterrupt:
+		print()
+		print("Exiting due to Ctrl-C")
+		exit()
+	except:
+		traceback.print_exc()
+		if "name" in data:
+			name = data["name"]
+		else:
+			name = ""
+		print("Failed to download "+name)
+def shouldDownloadFile(data, delete=False):
+	print("Should I download "+str(data))
+	try:
+		j = json.load(open(_luf, 'r'))
+		_autofillData(data)
+		if data["id"] in j:
+			ld = j[data["id"]]
+			print(ld)
+			hsh = _hash(data["file"].getStateData())
+			print(hsh)
+			if ("name" in data and data["name"] != ld["file"]) or hsh != ld["hash"]:
+				if delete:
+					os.remove(ld["file"])
+					j.pop(data["id"])
+					json.dump(j, open(_luf, 'w'))
+					print("Removed "+ld["file"])
+				return True
+			else:
+				return False
+		else:
+			print("It's not in there")
+			print(j)
+			print(data["id"])
+			return True
+	except FileNotFoundError:
+		print("didn't find JSON")
+		return True
