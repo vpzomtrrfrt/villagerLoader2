@@ -51,6 +51,8 @@ class OpenableCurseFile(Openable):
 		return (tr, "mods/"+tr.geturl().split("/")[-1])
 	def getStateData(self):
 		return str(self.project)+"/"+str(self.file)
+	def getTmpName(self):
+		return str(self.project)+"/"+str(self.file)
 def _readString(h):
 	tr = h.read()
 	if type(tr) == bytes:
@@ -171,8 +173,11 @@ def downloadFile(data):
 		traceback.print_exc()
 		if "name" in data:
 			name = data["name"]
+		elif hasattr(data["file"], "getTmpName"):
+			name = data["file"].getTmpName()
 		else:
-			name = ""
+			print(data)
+			name = "something"
 		print("Failed to download "+name)
 def shouldDownloadFile(data, delete=False):
 	try:
