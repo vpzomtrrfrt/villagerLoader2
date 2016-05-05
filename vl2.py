@@ -47,7 +47,6 @@ class OpenableCurseFile(Openable):
 		base = h.geturl()
 		if "?" in base:
 			base = base[:base.rfind("?")]
-		print(base)
 		tr = urlopen(base+"/files/"+str(self.file)+"/download")
 		return (tr, "mods/"+tr.geturl().split("/")[-1])
 	def getStateData(self):
@@ -59,16 +58,14 @@ def _readString(h):
 	return tr
 def _hash(s):
 	hsh = hashlib.md5()
-	if type(s) == str:
-		s = s.encode('utf-8')
+	s = repr(s).encode('utf-8')
 	hsh.update(s)
 	tr = hsh.hexdigest()
-	print(tr)
 def _mkparents(path):
 	directory = "/".join(path.split("/")[:-1])
 	try:
 		os.makedirs(directory)
-	except FileExistsError:
+	except OSError:
 		# it exists already
 		pass
 def _autofillData(data):
@@ -127,7 +124,18 @@ def load(to):
 					tr.append(ta)
 		except json.decoder.JSONDecodeError:
 			h = to.open()
-			print(h.read())
+			l = h.readlines()
+			h.close()
+			for L in l:
+				sp = L.decode('utf-8').strip().split("][")
+				if len(sp) == 3:
+					ta = {}
+					ta["id"] = sp[0]
+					ta["name"] = sp[1]
+					ta["file"] = OpenableURL(sp[2])
+					tr.append(ta)
+				else:
+					print("Wrong number of parameters in VL file")
 	return tr
 def downloadFile(data):
 	try:
@@ -167,15 +175,12 @@ def downloadFile(data):
 			name = ""
 		print("Failed to download "+name)
 def shouldDownloadFile(data, delete=False):
-	print("Should I download "+str(data))
 	try:
 		j = json.load(open(_luf, 'r'))
 		_autofillData(data)
 		if data["id"] in j:
 			ld = j[data["id"]]
-			print(ld)
 			hsh = _hash(data["file"].getStateData())
-			print(hsh)
 			if ("name" in data and data["name"] != ld["file"]) or hsh != ld["hash"]:
 				if delete:
 					os.remove(ld["file"])
@@ -186,10 +191,22 @@ def shouldDownloadFile(data, delete=False):
 			else:
 				return False
 		else:
-			print("It's not in there")
-			print(j)
-			print(data["id"])
 			return True
 	except FileNotFoundError:
 		print("didn't find JSON")
 		return True
+def handleRemovedFiles(dl):
+	ids = []
+	try:
+		j = json.load(open(_luf, 'r'))
+	except FileNotFoundError:
+		j = {}
+	for data in dl:
+		_autofillData(data)
+		ids.append(data["id"])
+	for key in list(j.keys()):
+		if not key in ids:
+			info = j.pop(key)
+			os.remove(info["file"])
+			json.dump(j, open(_luf, 'w'))
+			print("Removed "+info["file"])

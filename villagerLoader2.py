@@ -26,6 +26,7 @@ else:
 	config["source"] = src
 	vl2._mkparents(cfgFile)
 	json.dump(config, open(cfgFile, 'w'))
+	vl2.handleRemovedFiles(d)
 	for x in d:
 		if vl2.shouldDownloadFile(x, True):
 			name = vl2.downloadFile(x)
