@@ -63,6 +63,7 @@ def _hash(s):
 	s = repr(s).encode('utf-8')
 	hsh.update(s)
 	tr = hsh.hexdigest()
+	return tr
 def _mkparents(path):
 	directory = "/".join(path.split("/")[:-1])
 	try:
