@@ -3,11 +3,11 @@ if sys.version_info < (3,0):
 	# python 2
 	from cStringIO import StringIO as BytesIO
 	from zipfile import BadZipfile as BadZipFile
-	from urllib2 import urlopen
+	from urllib2 import urlopen, Request
 else:
 	from io import BytesIO
 	from zipfile import BadZipFile as BadZipFile
-	from urllib.request import urlopen
+	from urllib.request import urlopen, Request
 _datadir = ".villagerLoader2"
 _luf = _datadir+"/lastUpdated.json"
 class Openable():
@@ -34,7 +34,7 @@ class OpenableURL(Openable):
 	def __init__(self, url):
 		self.url = url
 	def open(self):
-		return urlopen(self.url)
+		return urlopen(Request(self.url, headers={'User-Agent': "Not Chrome"}))
 	def getStateData(self):
 		return self.url
 class OpenableCurseFile(Openable):
