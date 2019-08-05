@@ -42,12 +42,12 @@ class OpenableCurseFile(Openable):
 		self.project = projectID
 		self.file = fileID
 	def open(self, fn):
-		h = urlopen("http://minecraft.curseforge.com/projects/"+str(self.project))
+		h = urlopen(Request("http://minecraft.curseforge.com/projects/"+str(self.project), headers={"User-Agent": "Not Chrome"}))
 		h.close()
 		base = h.geturl()
 		if "?" in base:
 			base = base[:base.rfind("?")]
-		tr = urlopen(base+"/files/"+str(self.file)+"/download")
+		tr = urlopen(Request(base+"/download/"+str(self.file)+"/file", headers={"User-Agent": "Not Chrome"}))
 		return (tr, "mods/"+tr.geturl().split("/")[-1])
 	def getStateData(self):
 		return str(self.project)+"/"+str(self.file)
