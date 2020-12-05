@@ -33,8 +33,8 @@ class OpenableFile(Openable):
 class OpenableURL(Openable):
 	def __init__(self, url):
 		self.url = url
-	def open(self):
-		return urlopen(Request(self.url, headers={'User-Agent': "Not Chrome"}))
+	def open(self, fn):
+		return (urlopen(Request(self.url, headers={'User-Agent': "Not Chrome"})), fn or ("mods/" + os.path.basename(self.url)))
 	def getStateData(self):
 		return self.url
 class OpenableCurseFile(Openable):
@@ -42,13 +42,11 @@ class OpenableCurseFile(Openable):
 		self.project = projectID
 		self.file = fileID
 	def open(self, fn):
-		h = urlopen(Request("http://minecraft.curseforge.com/projects/"+str(self.project), headers={"User-Agent": "Not Chrome"}))
+		h = urlopen(Request("https://addons-ecs.forgesvc.net/api/v2/addon/"+str(self.project) + "/file/" + str(self.file)))
+		info = json.load(h)
 		h.close()
-		base = h.geturl()
-		if "?" in base:
-			base = base[:base.rfind("?")]
-		tr = urlopen(Request(base+"/download/"+str(self.file)+"/file", headers={"User-Agent": "Not Chrome"}))
-		return (tr, "mods/"+tr.geturl().split("/")[-1])
+		tr = urlopen(Request(info["downloadUrl"], headers={"User-Agent": "Not Chrome"}))
+		return (tr, "mods/" + info["fileName"])
 	def getStateData(self):
 		return str(self.project)+"/"+str(self.file)
 	def getTmpName(self):
@@ -123,7 +121,7 @@ def load(to):
 					if "name" in x:
 						ta["name"] = x["name"]
 					if "id" in x:
-						ta["id"] = ta["id"]
+						ta["id"] = x["id"]
 					tr.append(ta)
 		except json.decoder.JSONDecodeError:
 			h = to.open()
@@ -155,9 +153,9 @@ def downloadFile(data):
 			out.write(h.read())
 			out.close()
 			ts = {
-				"file": data["name"],
-				"hash": _hash(data["file"].getStateData())
-			}
+					"file": data["name"],
+					"hash": _hash(data["file"].getStateData())
+					}
 			try:
 				j = json.load(open(_luf, 'r'))
 			except FileNotFoundError:
