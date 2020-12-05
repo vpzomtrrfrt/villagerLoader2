@@ -12,8 +12,8 @@ _datadir = ".villagerLoader2"
 _luf = _datadir+"/lastUpdated.json"
 class Openable():
 	def open(self):
-		return self.open("")
-	def open(self, fn):
+		return self.open_fn("")[0]
+	def open_fn(self, fn):
 		return (self.open(), fn)
 	def getStateData(self):
 		return str(random.random())
@@ -33,7 +33,7 @@ class OpenableFile(Openable):
 class OpenableURL(Openable):
 	def __init__(self, url):
 		self.url = url
-	def open(self, fn):
+	def open_fn(self, fn):
 		return (urlopen(Request(self.url, headers={'User-Agent': "Not Chrome"})), fn or ("mods/" + os.path.basename(self.url)))
 	def getStateData(self):
 		return self.url
@@ -41,7 +41,7 @@ class OpenableCurseFile(Openable):
 	def __init__(self, projectID, fileID):
 		self.project = projectID
 		self.file = fileID
-	def open(self, fn):
+	def open_fn(self, fn):
 		h = urlopen(Request("https://addons-ecs.forgesvc.net/api/v2/addon/"+str(self.project) + "/file/" + str(self.file)))
 		info = json.load(h)
 		h.close()
@@ -143,7 +143,7 @@ def downloadFile(data):
 		if "name" in data:
 			h = data["file"].open()
 		else:
-			h, data["name"] = data["file"].open("")
+			h, data["name"] = data["file"].open_fn("")
 		if data["name"] == "":
 			print("Can't find filename")
 		else:
