@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import vl2, json, argparse
 parser = argparse.ArgumentParser(description="A Minecraft modpack downloader")
 parser.add_argument('source', nargs="?")
